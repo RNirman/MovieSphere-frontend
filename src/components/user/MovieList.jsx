@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { Film, Calendar, Tag, Eye, Star } from 'lucide-react';
@@ -6,6 +6,7 @@ import { Film, Calendar, Tag, Eye, Star } from 'lucide-react';
 function MovieList() {
     const [movies, setMovies] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         // Fetch movies from the Spring Boot API
@@ -19,6 +20,33 @@ function MovieList() {
                 setLoading(false);
             });
     }, []);
+
+    const fetchMovies = useCallback(async () => {
+        setLoading(true);
+        try {
+            // Include the search term as a query parameter in the API call
+            const query = searchTerm ? `?title=${searchTerm}` : '';
+            
+            const response = await axios.get(`http://localhost:8080/api/v1/movies${query}`); 
+            
+            setMovies(response.data);
+            setLoading(false);
+        } catch (error) {
+            console.error('Error fetching public movie list:', error);
+            setLoading(false);
+        }
+    }, [searchTerm]); // Re-run fetchMovies only when searchTerm changes
+
+    // Initial load and run whenever searchTerm changes
+    useEffect(() => {
+        fetchMovies();
+    }, [fetchMovies]);
+
+    // Handler to run the search when the button is clicked
+    const handleSearchSubmit = (e) => {
+        e.preventDefault();
+        fetchMovies(); // This triggers the API call with the current searchTerm
+    };
 
     if (loading) {
         return (
@@ -45,6 +73,38 @@ function MovieList() {
                     Discover your next favorite movie from our curated collection
                 </p>
             </div>
+
+            {/* --- SEARCH BAR UI --- */}
+            <form onSubmit={handleSearchSubmit} className="mb-4">
+                <div className="input-group">
+                    <input 
+                        type="text" 
+                        className="form-control" 
+                        placeholder="Search movies by title..." 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    <button 
+                        className="btn btn-primary" 
+                        type="submit"
+                        disabled={loading}
+                    >
+                        {loading ? 'Searching...' : 'Search'}
+                    </button>
+                    {/* Optional: Clear Button */}
+                    {searchTerm && (
+                        <button 
+                            className="btn btn-outline-secondary" 
+                            type="button" 
+                            onClick={() => { setSearchTerm(''); fetchMovies(); }}
+                        >
+                            Clear
+                        </button>
+                    )}
+                </div>
+            </form>
+            {/* --- END SEARCH BAR UI --- */}
+
 
             {/* Movies Grid */}
             {movies.length === 0 ? (
