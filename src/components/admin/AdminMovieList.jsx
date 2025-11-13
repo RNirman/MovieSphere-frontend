@@ -38,7 +38,6 @@ function AdminMovieList({ auth }) {
                 { headers: { 'Authorization': `Bearer ${token}` } }
             )
                 .then(() => {
-                    // Success notification
                     const notification = document.createElement('div');
                     notification.className = 'fixed top-4 right-4 bg-green-500/90 text-white px-6 py-3 rounded-lg shadow-lg z-50';
                     notification.textContent = 'Movie deleted successfully!';
@@ -95,7 +94,6 @@ function AdminMovieList({ auth }) {
             {/* Movies Table/Cards */}
             {Array.isArray(movies) && movies.length > 0 ? (
                 <>
-                    {/* Desktop Table View */}
                     <div className="hidden lg:block bg-slate-900/50 backdrop-blur-sm border border-slate-800/50 rounded-xl overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full">

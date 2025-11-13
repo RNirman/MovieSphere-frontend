@@ -27,24 +27,34 @@ function MovieForm({ auth }) {
     useEffect(() => {
         if (id && token) {
             setLoading(true);
-            axios.get(`http://localhost:8080/api/v1/movies/${id}`,
-                { headers: { 'Authorization': `Bearer ${token}` } })
+            // Use Bearer token (consistent with save request) and make response parsing resilient
+            axios.get(`http://localhost:8080/api/v1/movies/${id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
                 .then(response => {
+                    const rd = response.data || {};
                     const fetchedMovie = {
-                        title: response.data.title || '',
-                        genre: response.data.genre || '',
-                        releaseYear: response.data.releaseYear || '',
-                        posterUrl: response.data.posterUrl || '',
-                        synopsis: response.data.synopsis || '',
-                        director: response.data.director || '',
-                        trailerYoutubeId: response.data.trailerYoutubeId || '',
+                        // provide several fallbacks in case backend field names differ
+                        title: rd.title || rd.name || '',
+                        genre: rd.genre || rd.genres?.join(', ') || rd.category || '',
+                        releaseYear: rd.releaseYear || rd.release_year || (rd.release_date ? String(rd.release_date).substring(0, 4) : '') || '',
+                        posterUrl: rd.posterUrl || rd.fullPosterUrl || rd.poster_path || '',
+                        synopsis: rd.synopsis || rd.overview || rd.description || '',
+                        director: rd.director || rd.directorName || '',
+                        trailerYoutubeId: rd.trailerYoutubeId || rd.trailer_youtube_id || '',
                     };
                     setMovie(fetchedMovie);
                     setLoading(false);
+                    console.log('Fetched movie for edit:', fetchedMovie);
                 })
                 .catch(err => {
-                    console.error('Error fetching movie for edit:', err);
-                    setError('Failed to load movie data for editing.');
+                    console.error('Error fetching movie for edit:', err, err.response?.status, err.response?.data);
+                    // Show a clearer error if it's an auth issue
+                    if (err.response?.status === 401 || err.response?.status === 403) {
+                        setError('Unauthorized: please sign in as admin to edit movies.');
+                    } else {
+                        setError('Failed to load movie data for editing.');
+                    }
                     setLoading(false);
                 });
         }
@@ -71,6 +81,7 @@ function MovieForm({ auth }) {
             // NOTE: Search endpoint is public, so no auth header needed here
             const response = await axios.get(`http://localhost:8080/api/v1/movies/search/tmdb?title=${searchTerm}`);
             setSearchResults(response.data);
+            console.log('TMDb Search Results:', response.data);
             if (response.data.length === 0) {
                 setSearchError(`No results found for "${searchTerm}".`);
             }
@@ -196,7 +207,7 @@ function MovieForm({ auth }) {
                                         className="flex justify-between items-center p-2 hover:bg-slate-700/50 cursor-pointer rounded"
                                         onClick={() => handleSelectMovie(result)}
                                     >
-                                        <p>{result.title} ({result.releaseDate ? result.releaseDate.substring(0, 4) : 'N/A'})</p>
+                                        <p>{result.title} ({result.release_date ? result.release_date.substring(0, 4) : 'N/A'})</p>
                                         <button type="button" className="text-sm text-green-400">Select</button>
                                     </div>
                                 ))}

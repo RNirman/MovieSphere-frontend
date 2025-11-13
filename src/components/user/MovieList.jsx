@@ -8,44 +8,40 @@ function MovieList() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
-    useEffect(() => {
-        // Fetch movies from the Spring Boot API
-        axios.get('http://localhost:8080/api/v1/movies') 
-            .then(response => {
-                setMovies(response.data);
-                setLoading(false);
-            })
-            .catch(error => {
-                console.error('Error fetching movie list:', error);
-                setLoading(false);
-            });
-    }, []);
-
-    const fetchMovies = useCallback(async () => {
+    // Fetch function accepts an optional query argument so we only search when
+    // the user submits the form. We also call it once on mount with no query.
+    const fetchMovies = useCallback(async (query = '') => {
         setLoading(true);
         try {
-            // Include the search term as a query parameter in the API call
-            const query = searchTerm ? `?title=${searchTerm}` : '';
-            
-            const response = await axios.get(`http://localhost:8080/api/v1/movies${query}`); 
-            
+            let apiUrl = '';
+
+            if (query) {
+                // 1. If searching, use the new public TMDb search endpoint
+                apiUrl = `http://localhost:8080/api/v1/public/search?title=${encodeURIComponent(query)}`;
+            } else {
+                // 2. If not searching, use the existing local MySQL endpoint
+                apiUrl = `http://localhost:8080/api/v1/movies`;
+            }
+
+            const response = await axios.get(apiUrl);
+
             setMovies(response.data);
             setLoading(false);
         } catch (error) {
-            console.error('Error fetching public movie list:', error);
+            console.error('Error fetching movies:', error);
             setLoading(false);
         }
-    }, [searchTerm]); // Re-run fetchMovies only when searchTerm changes
+    }, []);
 
-    // Initial load and run whenever searchTerm changes
+    // Initial load once on mount (no search query)
     useEffect(() => {
         fetchMovies();
     }, [fetchMovies]);
 
-    // Handler to run the search when the button is clicked
     const handleSearchSubmit = (e) => {
         e.preventDefault();
-        fetchMovies(); // This triggers the API call with the current searchTerm
+        // Run search with the current searchTerm (explicit submit only)
+        fetchMovies(searchTerm);
     };
 
     if (loading) {
@@ -75,28 +71,33 @@ function MovieList() {
             </div>
 
             {/* --- SEARCH BAR UI --- */}
-            <form onSubmit={handleSearchSubmit} className="mb-4">
-                <div className="input-group">
-                    <input 
-                        type="text" 
-                        className="form-control" 
-                        placeholder="Search movies by title..." 
+            <form onSubmit={handleSearchSubmit} className="mb-8">
+                <div className="flex max-w-2xl mx-auto gap-0">
+                    {/* Visible label for accessibility only */}
+                    <label htmlFor="movie-search" className="sr-only">Search movies on TMDb</label>
+                    <input
+                        id="movie-search"
+                        type="text"
+                        placeholder="Search TMDb by title..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
+                        className="flex-1 px-4 py-2 rounded-l-lg bg-slate-900 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
                     />
-                    <button 
-                        className="btn btn-primary" 
+
+                    <button
                         type="submit"
                         disabled={loading}
+                        className="px-6 py-2 bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-r-lg disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                     >
-                        {loading ? 'Searching...' : 'Search'}
+                        {loading ? 'Searching...' : 'Search TMDb'}
                     </button>
-                    {/* Optional: Clear Button */}
+
+                    {/* Clear Button - appears only when there's text */}
                     {searchTerm && (
-                        <button 
-                            className="btn btn-outline-secondary" 
-                            type="button" 
+                        <button
+                            type="button"
                             onClick={() => { setSearchTerm(''); fetchMovies(); }}
+                            className="ml-3 px-3 py-2 bg-slate-800 border border-slate-700 text-slate-200 rounded-lg hover:bg-slate-700 transition-colors"
                         >
                             Clear
                         </button>
@@ -105,75 +106,45 @@ function MovieList() {
             </form>
             {/* --- END SEARCH BAR UI --- */}
 
-
-            {/* Movies Grid */}
+            {/* --- MOVIE LIST RENDERING --- */}
+            {/* Movies Grid: show friendly messages and a simple card layout (Tailwind) */}
             {movies.length === 0 ? (
                 <div className="max-w-md mx-auto">
-                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-6 text-center backdrop-blur-sm">
-                        <Film className="w-12 h-12 text-blue-400 mx-auto mb-3" />
-                        <p className="text-blue-300 font-medium">No movies found</p>
-                        <p className="text-slate-400 text-sm mt-2">Please add some via the Admin Panel</p>
+                    <div className="bg-slate-900/40 border border-slate-800/50 rounded-xl p-6 text-center backdrop-blur-sm">
+                        <Film className="w-12 h-12 text-violet-400 mx-auto mb-3" />
+                        <p className="text-white font-medium">{searchTerm ? 'No movies found matching your search.' : 'No movies found'}</p>
+                        {!searchTerm && <p className="text-slate-400 text-sm mt-2">Please add some via the Admin Panel</p>}
                     </div>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {movies.map(movie => (
-                        <div 
-                            key={movie.id}
-                            className="group bg-slate-900/50 backdrop-blur-sm border border-slate-800/50 rounded-xl overflow-hidden hover:border-violet-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-violet-600/20 hover:-translate-y-1"
-                        >
-                            {/* Movie Poster */}
-                            <div className="relative overflow-hidden aspect-[2/3] bg-slate-800">
-                                <img 
-                                    src={movie.posterUrl || 'https://via.placeholder.com/400x600?text=No+Poster'} 
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {movies.map(movie => {
+                        // Handle both local Movie objects and TMDb results
+                        const displayYear = movie.releaseYear || (movie.releaseDate ? String(movie.releaseDate).substring(0, 4) : 'N/A');
+                        const posterUrl = movie.posterUrl || movie.fullPosterUrl || '';
+                        const source = movie.releaseDate ? 'TMDb' : 'Local';
+                        
+                        return (
+                            <div key={movie.id} className="bg-slate-900/50 border border-slate-800/50 rounded-xl overflow-hidden shadow-sm hover:shadow-lg hover:border-violet-500/50 transition-all">
+                                <img
+                                    src={posterUrl || 'https://via.placeholder.com/400x600?text=No+Poster'}
                                     alt={`Poster for ${movie.title}`}
+                                    className="w-full h-56 object-cover"
+                                    style={{ height: '350px' }}
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                                
-                                {/* Rating Badge (if you have rating data) */}
-                                <div className="absolute top-3 right-3 bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1 border border-slate-700/50">
-                                    <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                                    <span className="text-sm font-semibold text-white">
-                                        {movie.rating || '8.5'}
-                                    </span>
+                                <div className="p-4 flex flex-col h-44">
+                                    <h5 className="text-lg font-semibold text-white truncate" title={movie.title}>
+                                        {movie.title} ({displayYear})
+                                    </h5>
+                                    <p className="text-slate-400 text-xs mt-1 mb-2">Source: {source}</p>
+                                    <p className="text-slate-400 text-sm mb-3 flex-1">Genre: {movie.genre || 'N/A'}</p>
+                                    <Link to={`/movies/${movie.id}`} className="mt-auto inline-block px-4 py-2 rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 text-white font-semibold text-center hover:from-violet-500 hover:to-blue-500 transition-all">
+                                        View Details
+                                    </Link>
                                 </div>
                             </div>
-
-                            {/* Movie Info */}
-                            <div className="p-5">
-                                <h3 className="text-lg font-bold text-white mb-2 line-clamp-2 group-hover:text-violet-400 transition-colors">
-                                    {movie.title}
-                                </h3>
-                                
-                                <div className="flex flex-wrap gap-2 mb-3">
-                                    <div className="flex items-center gap-1 text-slate-400 text-sm">
-                                        <Calendar className="w-4 h-4" />
-                                        <span>{movie.releaseYear}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1 text-slate-400 text-sm">
-                                        <Tag className="w-4 h-4" />
-                                        <span>{movie.genre}</span>
-                                    </div>
-                                </div>
-
-                                {/* Description Preview (if available) */}
-                                {movie.description && (
-                                    <p className="text-slate-400 text-sm mb-4 line-clamp-2">
-                                        {movie.description}
-                                    </p>
-                                )}
-
-                                <Link 
-                                    to={`/movies/${movie.id}`}
-                                    className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 transition-all duration-200 font-semibold text-white shadow-lg shadow-violet-600/20"
-                                >
-                                    <Eye className="w-4 h-4" />
-                                    View Details
-                                </Link>
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
