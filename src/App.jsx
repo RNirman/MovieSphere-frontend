@@ -7,6 +7,7 @@ import MovieForm from './components/admin/MovieForm';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import AdminLogin from './components/admin/AdminLogin';
+import TmdbDetail from './components/user/TmdbDetail';
 
 const ProtectedRoute = ({ auth, children }) => {
     if (!auth) {
@@ -27,6 +28,7 @@ function AppContent({ auth, setAuth }) {
         <Routes>
           <Route path="/" element={<MovieList />} />
           <Route path="/movies/:id" element={<MovieDetail />} />
+          <Route path="/tmdb-details/:id" element={<TmdbDetail />} />
           <Route path="/admin-login" element={<AdminLogin setAuth={setAuth} />} />
           <Route path="/admin" element={
             <ProtectedRoute auth={auth}>

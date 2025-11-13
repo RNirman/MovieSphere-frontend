@@ -108,13 +108,14 @@ function MovieForm({ auth }) {
                 ...prev,
                 title: tmdbMovie.title,
                 genre: prev.genre, // TMDb doesn't give genre easily, keep existing or leave blank
-                releaseYear: tmdbMovie.releaseDate ? parseInt(tmdbMovie.releaseDate.substring(0, 4)) : '',
+                releaseYear: tmdbMovie.release_date ? parseInt(tmdbMovie.release_date.substring(0, 4)) : '',
                 posterUrl: tmdbMovie.fullPosterUrl,
                 synopsis: tmdbMovie.overview,
                 director: '', // This requires another TMDb endpoint (credits) - simplifying for now
                 // trailerYoutubeId: fetchTrailerKey(tmdbMovie.id), // Placeholder for dedicated trailer logic
             }));
             setSearchTerm(''); // Clear search bar
+            console.log('Selected TMDb Movie:', tmdbMovie);
 
         } catch (err) {
             setSearchError('Error processing selection.');

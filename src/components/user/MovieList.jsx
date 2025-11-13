@@ -1,47 +1,58 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import { Film, Calendar, Tag, Eye, Star } from 'lucide-react';
+import { Film } from 'lucide-react';
 
 function MovieList() {
     const [movies, setMovies] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [searchPerformed, setSearchPerformed] = useState(false);
 
-    // Fetch function accepts an optional query argument so we only search when
-    // the user submits the form. We also call it once on mount with no query.
+    // Fetch function accepts an optional query argument
     const fetchMovies = useCallback(async (query = '') => {
         setLoading(true);
         try {
             let apiUrl = '';
 
             if (query) {
-                // 1. If searching, use the new public TMDb search endpoint
-                apiUrl = `http://localhost:8080/api/v1/public/search?title=${encodeURIComponent(query)}`;
+                // If searching, use the public TMDb search endpoint
+                apiUrl = `http://localhost:8080/api/v1/movies/public/search?title=${encodeURIComponent(query)}`;
             } else {
-                // 2. If not searching, use the existing local MySQL endpoint
+                // If not searching, use the existing local MySQL endpoint
                 apiUrl = `http://localhost:8080/api/v1/movies`;
             }
 
+            console.log('Fetching from:', apiUrl); // Debug log
             const response = await axios.get(apiUrl);
 
             setMovies(response.data);
+            console.log('Fetched movies:', response.data); // Debug log
             setLoading(false);
         } catch (error) {
             console.error('Error fetching movies:', error);
+            console.error('Error response:', error.response); // More detailed error
             setLoading(false);
         }
     }, []);
 
     // Initial load once on mount (no search query)
     useEffect(() => {
-        fetchMovies();
-    }, [fetchMovies]);
+        if (!searchPerformed && !searchTerm) {
+            fetchMovies();
+        }
+    }, [fetchMovies, searchPerformed, searchTerm]);
 
     const handleSearchSubmit = (e) => {
         e.preventDefault();
-        // Run search with the current searchTerm (explicit submit only)
+        setSearchPerformed(true);
         fetchMovies(searchTerm);
+    };
+    
+    const handleClearSearch = () => {
+        setSearchTerm('');
+        setSearchPerformed(false);
+        fetchMovies('');
     };
 
     if (loading) {
@@ -70,10 +81,9 @@ function MovieList() {
                 </p>
             </div>
 
-            {/* --- SEARCH BAR UI --- */}
+            {/* Search Bar */}
             <form onSubmit={handleSearchSubmit} className="mb-8">
                 <div className="flex max-w-2xl mx-auto gap-0">
-                    {/* Visible label for accessibility only */}
                     <label htmlFor="movie-search" className="sr-only">Search movies on TMDb</label>
                     <input
                         id="movie-search"
@@ -83,7 +93,6 @@ function MovieList() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="flex-1 px-4 py-2 rounded-l-lg bg-slate-900 border border-slate-700 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
                     />
-
                     <button
                         type="submit"
                         disabled={loading}
@@ -92,11 +101,10 @@ function MovieList() {
                         {loading ? 'Searching...' : 'Search TMDb'}
                     </button>
 
-                    {/* Clear Button - appears only when there's text */}
                     {searchTerm && (
                         <button
                             type="button"
-                            onClick={() => { setSearchTerm(''); fetchMovies(); }}
+                            onClick={handleClearSearch}
                             className="ml-3 px-3 py-2 bg-slate-800 border border-slate-700 text-slate-200 rounded-lg hover:bg-slate-700 transition-colors"
                         >
                             Clear
@@ -104,30 +112,34 @@ function MovieList() {
                     )}
                 </div>
             </form>
-            {/* --- END SEARCH BAR UI --- */}
 
-            {/* --- MOVIE LIST RENDERING --- */}
-            {/* Movies Grid: show friendly messages and a simple card layout (Tailwind) */}
+            {/* Movie List */}
             {movies.length === 0 ? (
                 <div className="max-w-md mx-auto">
                     <div className="bg-slate-900/40 border border-slate-800/50 rounded-xl p-6 text-center backdrop-blur-sm">
                         <Film className="w-12 h-12 text-violet-400 mx-auto mb-3" />
-                        <p className="text-white font-medium">{searchTerm ? 'No movies found matching your search.' : 'No movies found'}</p>
-                        {!searchTerm && <p className="text-slate-400 text-sm mt-2">Please add some via the Admin Panel</p>}
+                        <p className="text-white font-medium">
+                            {searchPerformed && searchTerm 
+                                ? 'No movies found matching your TMDb search.' 
+                                : 'No movies found'}
+                        </p>
                     </div>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {movies.map(movie => {
-                        // Handle both local Movie objects and TMDb results
-                        const displayYear = movie.releaseYear || (movie.releaseDate ? String(movie.releaseDate).substring(0, 4) : 'N/A');
-                        const posterUrl = movie.posterUrl || movie.fullPosterUrl || '';
-                        const source = movie.releaseDate ? 'TMDb' : 'Local';
+                        const isTmdbResult = !!movie.release_date && !movie.release_year;
+                        const idKey = movie.id;
+                        const linkPath = isTmdbResult ? `/tmdb-details/${idKey}` : `/movies/${idKey}`;
                         
+                        const displayYear = movie.releaseYear || (movie.release_date ? String(movie.release_date).substring(0, 4) : 'N/A');
+                        const posterUrl = movie.posterUrl || movie.fullPosterUrl || 'https://via.placeholder.com/400x600?text=No+Poster';
+                        const source = isTmdbResult ? 'TMDb' : 'Local';
+
                         return (
-                            <div key={movie.id} className="bg-slate-900/50 border border-slate-800/50 rounded-xl overflow-hidden shadow-sm hover:shadow-lg hover:border-violet-500/50 transition-all">
+                            <div key={idKey} className="bg-slate-900/50 border border-slate-800/50 rounded-xl overflow-hidden shadow-sm hover:shadow-lg hover:border-violet-500/50 transition-all">
                                 <img
-                                    src={posterUrl || 'https://via.placeholder.com/400x600?text=No+Poster'}
+                                    src={posterUrl}
                                     alt={`Poster for ${movie.title}`}
                                     className="w-full h-56 object-cover"
                                     style={{ height: '350px' }}
@@ -136,9 +148,8 @@ function MovieList() {
                                     <h5 className="text-lg font-semibold text-white truncate" title={movie.title}>
                                         {movie.title} ({displayYear})
                                     </h5>
-                                    <p className="text-slate-400 text-xs mt-1 mb-2">Source: {source}</p>
-                                    <p className="text-slate-400 text-sm mb-3 flex-1">Genre: {movie.genre || 'N/A'}</p>
-                                    <Link to={`/movies/${movie.id}`} className="mt-auto inline-block px-4 py-2 rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 text-white font-semibold text-center hover:from-violet-500 hover:to-blue-500 transition-all">
+                                    <p className="text-slate-400 text-sm mb-3 flex-1">Genre: {movie.genre || null}</p>
+                                    <Link to={linkPath} className="mt-auto inline-block px-4 py-2 rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 text-white font-semibold text-center hover:from-violet-500 hover:to-blue-500 transition-all">
                                         View Details
                                     </Link>
                                 </div>
