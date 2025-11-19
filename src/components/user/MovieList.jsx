@@ -16,23 +16,23 @@ function MovieList() {
             let apiUrl = '';
 
             if (query) {
-                // If searching, use the public TMDb search endpoint
+                // 1. Search (user-initiated TMDb search)
                 apiUrl = `http://localhost:8080/api/v1/movies/public/search?title=${encodeURIComponent(query)}`;
             } else {
-                // If not searching, use the existing local MySQL endpoint
-                apiUrl = `http://localhost:8080/api/v1/movies`;
+                // 2. Initial Load (popular TMDb movies)
+                // Use the new public popular endpoint when no search query is present
+                apiUrl = `http://localhost:8080/api/v1/movies/public/popular`; 
             }
 
-            console.log('Fetching from:', apiUrl); // Debug log
             const response = await axios.get(apiUrl);
-
+            
             setMovies(response.data);
-            console.log('Fetched movies:', response.data); // Debug log
             setLoading(false);
+            console.log('Fetched movies:', response.data);
         } catch (error) {
             console.error('Error fetching movies:', error);
-            console.error('Error response:', error.response); // More detailed error
             setLoading(false);
+            setMovies([]); 
         }
     }, []);
 
@@ -84,7 +84,7 @@ function MovieList() {
             {/* Search Bar */}
             <form onSubmit={handleSearchSubmit} className="mb-8">
                 <div className="flex max-w-2xl mx-auto gap-0">
-                    <label htmlFor="movie-search" className="sr-only">Search movies on TMDb</label>
+                    <label htmlFor="movie-search" className="sr-only">Search movies</label>
                     <input
                         id="movie-search"
                         type="text"
@@ -98,7 +98,7 @@ function MovieList() {
                         disabled={loading}
                         className="px-6 py-2 bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-r-lg disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                     >
-                        {loading ? 'Searching...' : 'Search TMDb'}
+                        {loading ? 'Searching...' : 'Search'}
                     </button>
 
                     {searchTerm && (
