@@ -160,13 +160,13 @@ function MovieList() {
             )}
 
             {/* Movie Count Footer */}
-            {movies.length > 0 && (
+            {/* {movies.length > 0 && (
                 <div className="mt-12 text-center">
                     <p className="text-slate-500 text-sm">
                         Showing {movies.length} {movies.length === 1 ? 'movie' : 'movies'}
                     </p>
                 </div>
-            )}
+            )} */}
         </div>
     );
 }
