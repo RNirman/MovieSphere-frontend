@@ -37,8 +37,16 @@ function TmdbDetail() {
         ? `https://www.youtube.com/embed/${movie.trailerYoutubeId}`
         : null;
 
+    const backgroundImageUrl = movie.backdropUrl || movie.posterUrl || '';
+    const backgroundStyle = backgroundImageUrl ? {
+        backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.86), rgba(15, 23, 42, 0.86)), url(${backgroundImageUrl})`,
+        backgroundSize: 'cover',
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'center',
+    } : {};
+
     return (
-        <div className="min-h-screen bg-slate-950 text-white py-12">
+        <div className="min-h-screen bg-slate-950 text-white py-12" style={backgroundStyle}>
             <div className="max-w-5xl mx-auto px-4">
                 {/* Header Section */}
                 <div className="mb-8">

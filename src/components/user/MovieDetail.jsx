@@ -53,8 +53,16 @@ function MovieDetail() {
         ? `https://www.youtube.com/embed/${movie.trailerYoutubeId}?autoplay=0`
         : null;
 
+    const backgroundImageUrl = movie.backdropUrl || movie.posterUrl || '';
+    const backgroundStyle = backgroundImageUrl ? {
+        backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.86), rgba(15, 23, 42, 0.86)), url(${backgroundImageUrl})`,
+        backgroundSize: 'cover',
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'center',
+    } : {};
+
     return (
-        <div className="min-h-screen bg-slate-950 text-white py-12">
+        <div className="min-h-screen bg-slate-950 text-white py-12" style={backgroundStyle}>
             <div className="max-w-5xl mx-auto px-4">
                 <div className="mb-6 flex items-center gap-4">
                     <h1 className="text-3xl font-bold">{movie.title}</h1>

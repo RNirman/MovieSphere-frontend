@@ -1,13 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import { Film } from 'lucide-react';
+import { Film, ChevronLeft, ChevronRight } from 'lucide-react';
 
 function MovieList() {
     const [movies, setMovies] = useState([]);
+    const [featuredMovies, setFeaturedMovies] = useState([]);
+    const [featuredIndex, setFeaturedIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [searchPerformed, setSearchPerformed] = useState(false);
+
+    const pickRandomMovies = (movieArray, count = 5) => {
+        const shuffled = [...movieArray].sort(() => 0.5 - Math.random());
+        return shuffled.slice(0, Math.min(count, shuffled.length));
+    };
+
+    const currentFeatured = featuredMovies[featuredIndex] || null;
 
     // Fetch function accepts an optional query argument
     const fetchMovies = useCallback(async (query = '') => {
@@ -25,8 +34,11 @@ function MovieList() {
             }
 
             const response = await axios.get(apiUrl);
-            
-            setMovies(response.data);
+            const results = response.data || [];
+            setMovies(results);
+            const randomMovies = pickRandomMovies(results, 5);
+            setFeaturedMovies(randomMovies);
+            setFeaturedIndex(0);
             setLoading(false);
             console.log('Fetched movies:', response.data);
         } catch (error) {
@@ -54,6 +66,26 @@ function MovieList() {
         setSearchPerformed(false);
         fetchMovies('');
     };
+
+    const nextFeatured = () => {
+        if (featuredMovies.length < 2) return;
+        setFeaturedIndex(prev => (prev + 1) % featuredMovies.length);
+    };
+
+    const prevFeatured = () => {
+        if (featuredMovies.length < 2) return;
+        setFeaturedIndex(prev => (prev - 1 + featuredMovies.length) % featuredMovies.length);
+    };
+
+    useEffect(() => {
+        if (featuredMovies.length < 2) return;
+
+        const autoCycle = setInterval(() => {
+            setFeaturedIndex(prev => (prev + 1) % featuredMovies.length);
+        }, 6000);
+
+        return () => clearInterval(autoCycle);
+    }, [featuredMovies]);
 
     if (loading) {
         return (
@@ -112,6 +144,70 @@ function MovieList() {
                     )}
                 </div>
             </form>
+
+            {/* Featured Banner Slider */}
+            {currentFeatured && (
+                <div className="relative mb-10 overflow-hidden rounded-3xl bg-slate-950 shadow-2xl shadow-slate-900/50">
+                    <div
+                        className="relative h-[420px] sm:h-[460px] lg:h-[520px] w-full bg-cover bg-center"
+                        style={{ backgroundImage: `linear-gradient(to right, rgba(15, 23, 42, 0.9) 20%, rgba(15, 23, 42, 0.35) 60%, rgba(15, 23, 42, 0.9) 100%), url(${currentFeatured.backdropUrl || currentFeatured.posterUrl || currentFeatured.fullPosterUrl || 'https://via.placeholder.com/1400x500?text=No+Image'})` }}
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/20 to-slate-950/90"></div>
+                        <div className="relative z-10 flex h-full flex-col justify-center px-6 sm:px-12 lg:px-20 text-white">
+                            <span className="inline-flex items-center gap-2 mb-4 text-sm uppercase tracking-[0.3em] text-violet-300">
+                                Featured Movie
+                            </span>
+                            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-tight max-w-3xl mb-5">
+                                {currentFeatured.title}
+                            </h2>
+                            <p className="max-w-xl text-slate-200 text-base sm:text-lg leading-relaxed mb-8">
+                                {currentFeatured.synopsis ? `${currentFeatured.synopsis.substring(0, 190)}${currentFeatured.synopsis.length > 190 ? '…' : ''}` : 'Explore the full movie page for more details, trailers, and cast information.'}
+                            </p>
+                            <div className="flex flex-wrap gap-3 items-center">
+                                <Link
+                                    to={currentFeatured.release_date && !currentFeatured.release_year ? `/tmdb-details/${currentFeatured.id}` : `/movies/${currentFeatured.id}`}
+                                    className="inline-flex items-center gap-2 rounded-full bg-violet-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-500/20 hover:bg-violet-500 transition"
+                                >
+                                    View Details
+                                </Link>
+                                <span className="text-slate-400 text-sm">
+                                    {currentFeatured.releaseYear || (currentFeatured.release_date ? String(currentFeatured.release_date).substring(0, 4) : 'N/A')}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {featuredMovies.length > 1 && (
+                        <>
+                            <button
+                                type="button"
+                                onClick={prevFeatured}
+                                className="absolute left-5 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-3 text-white shadow-lg shadow-black/40 hover:bg-black/60 transition"
+                            >
+                                <ChevronLeft size={20} />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={nextFeatured}
+                                className="absolute right-5 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-3 text-white shadow-lg shadow-black/40 hover:bg-black/60 transition"
+                            >
+                                <ChevronRight size={20} />
+                            </button>
+
+                            <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-2">
+                                {featuredMovies.map((_, dotIndex) => (
+                                    <button
+                                        key={dotIndex}
+                                        type="button"
+                                        onClick={() => setFeaturedIndex(dotIndex)}
+                                        className={`h-2.5 w-2.5 rounded-full transition ${featuredIndex === dotIndex ? 'bg-violet-400' : 'bg-slate-500/70 hover:bg-slate-200/80'}`}
+                                    />
+                                ))}
+                            </div>
+                        </>
+                    )}
+                </div>
+            )}
 
             {/* Movie List */}
             {movies.length === 0 ? (
