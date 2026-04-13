@@ -1,16 +1,65 @@
-# React + Vite
+# 🎬 MovieSphere
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**MovieSphere** is a high-performance, full-stack movie discovery and management platform. It allows users to browse trending movies, search the global TMDb database in real-time, and enables administrators to curate a local collection with rich metadata and trailers.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 Features
 
-## React Compiler
+### 🌍 Public Features
+* **Dynamic Discovery:** Instantly view popular movies from TMDb on the home page.
+* **Global Search:** Real-time search across the TMDb database via a secure backend proxy.
+* **Hybrid Detail Views:** Seamlessly view details for both local database entries and external TMDb titles.
+* **Responsive Design:** Fully optimized for mobile, tablet, and desktop using Tailwind CSS.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 🛡️ Admin Features
+* **Secure Authentication:** Protected admin panel using JWT/Basic Auth.
+* **One-Click Import:** Search for a movie via API and save all details (poster, director, synopsis, trailer ID) directly to the MySQL database.
+* **Full CRUD:** Manually add, edit, or delete movies from the local curated collection.
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 🛠️ Tech Stack
+
+### Frontend
+* **React.js** (Functional Components, Hooks)
+* **Tailwind CSS** (Modern Styling)
+* **Axios** (API Communication)
+* **Lucide React** (Iconography)
+
+### Backend
+* **Java 17+**
+* **Spring Boot 3.x**
+* **Spring Security** (Role-Based Access Control)
+* **Spring Data JPA** (Hibernate)
+* **MySQL** (Relational Database)
+
+---
+
+## 🔑 Security Implementation
+
+One of the core strengths of MovieSphere is its security architecture:
+
+1.  **API Key Masking:** The TMDb API key is stored exclusively in environment variables on the backend. No sensitive keys are exposed to the client-side browser.
+2.  **Request Proxying:** All external API requests are proxied through Spring Boot, allowing for rate limiting and controlled access.
+3.  **Encrypted Credentials:** Admin passwords are hashed using BCrypt.
+
+---
+
+## 📦 Installation & Setup
+
+### Prerequisites
+* JDK 17 or higher
+* Node.js & npm
+* MySQL Server
+* TMDb API Key
+
+### 1. Backend Configuration
+Create a `src/main/resources/application-local.properties` file:
+```properties
+spring.datasource.url=jdbc:mysql://localhost:3306/moviesphere_db
+spring.datasource.username=your_username
+spring.datasource.password=your_password
+
+tmdb.api.key=YOUR_TMDB_API_KEY
+tmdb.api.base-url=[https://api.themoviedb.org/3/](https://api.themoviedb.org/3/)
